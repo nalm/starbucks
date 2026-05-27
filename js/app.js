@@ -3,8 +3,8 @@ let charts = {};
 
 // Current Live Time & Date initialization
 function updateLiveTime() {
-  const now = new Date('2026-05-27T16:51:49+09:00');
-  const format = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const now = new Date();
+  const format = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
   const el = document.getElementById('current-time-text');
   if (el) el.innerText = format;
 }
@@ -508,7 +508,7 @@ function initCharts() {
 // App Initialization
 document.addEventListener('DOMContentLoaded', () => {
   updateLiveTime();
-  setInterval(updateLiveTime, 60000); // Update every minute
+  setInterval(updateLiveTime, 1000); // Update every second
   
   renderTimeline();
   calculateRecovery();
