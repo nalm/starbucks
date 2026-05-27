@@ -714,6 +714,47 @@ header {
   }
 }
 
+/* --- Refresh Button Styles --- */
+.refresh-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-smooth);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.refresh-btn:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--color-sb-green);
+  transform: translateY(-2px);
+  box-shadow: var(--glow-green);
+}
+
+.refresh-icon {
+  font-size: 1.1rem;
+  display: inline-block;
+  transition: var(--transition-smooth);
+}
+
+.refresh-btn:hover .refresh-icon {
+  transform: scale(1.1);
+}
+
+.refresh-btn.spinning .refresh-icon {
+  animation: spin-clockwise 0.8s linear infinite;
+}
+
+@keyframes spin-clockwise {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 /* --- Scrollbar Customization --- */
 ::-webkit-scrollbar {
   width: 8px;

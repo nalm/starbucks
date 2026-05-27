@@ -524,3 +524,101 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, 300);
 });
+
+// Real-time Data Refresh and Noise Simulation Logic
+function refreshData() {
+  const btn = document.getElementById('refresh-button');
+  if (!btn || btn.classList.contains('spinning')) return;
+  
+  // 1. Trigger spinning animation
+  btn.classList.add('spinning');
+  
+  // 2. Update Live Timestamp to current real system time
+  const now = new Date();
+  const format = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+  document.getElementById('current-time-text').innerText = format;
+  
+  // 3. Inject simulated real-time noise into the latest day's data (2026-05-27)
+  const latestIdx = DASHBOARD_DATA.dailyMetrics.length - 1;
+  const latestData = DASHBOARD_DATA.dailyMetrics[latestIdx];
+  
+  // Emart Stock price: random change of -400 to +400 won (steps of 100)
+  const stockNoise = (Math.floor(Math.random() * 9) - 4) * 100;
+  latestData.emartStock = Math.max(85000, Math.min(105000, latestData.emartStock + stockNoise));
+  
+  // Sales estimates: random change of -0.3 to +0.3 billion won
+  const salesMobilNoise = parseFloat((Math.random() * 0.6 - 0.3).toFixed(2));
+  const salesAicelNoise = parseFloat((Math.random() * 0.6 - 0.3).toFixed(2));
+  latestData.salesMobil = parseFloat(Math.max(25, latestData.salesMobil + salesMobilNoise).toFixed(2));
+  latestData.salesAicel = parseFloat(Math.max(25, latestData.salesAicel + salesAicelNoise).toFixed(2));
+  
+  // Sentiment: positive ratio moves within 26% to 32%
+  const sentimentPos = Math.max(26, Math.min(32, latestData.sentimentPositive + (Math.random() > 0.5 ? 1 : -1)));
+  latestData.sentimentPositive = sentimentPos;
+  latestData.sentimentNegative = 100 - sentimentPos;
+  
+  // Search Trend: random change of -1.5 to +1.5
+  latestData.searchTrend = parseFloat(Math.max(20, Math.min(60, latestData.searchTrend + (Math.random() * 3 - 1.5))).toFixed(1));
+  
+  // Gift Card Discount: random change of -0.2% to +0.2%
+  latestData.giftDiscount = parseFloat(Math.max(7, Math.min(15, latestData.giftDiscount + (Math.random() * 0.4 - 0.2))).toFixed(1));
+
+  // 4. Update Top KPI Cards
+  const avgSales = ((latestData.salesMobil + latestData.salesAicel) / 2).toFixed(1);
+  document.getElementById('kpi-sales-value').innerText = `${avgSales}억`;
+  document.getElementById('kpi-stock-value').innerText = `${latestData.emartStock.toLocaleString()}원`;
+  
+  // Sentiment Card: update sentiment values
+  document.getElementById('kpi-sentiment-value').innerText = `${latestData.sentimentNegative.toFixed(1)}%`;
+  
+  // Calculate recovery rate and refresh components
+  calculateRecovery();
+  
+  // 5. Update and animate charts with the new dataset
+  setTimeout(() => {
+    const dates = getDatesArray();
+    const salesAvg = DASHBOARD_DATA.dailyMetrics.map(d => parseFloat(((d.salesMobil + d.salesAicel) / 2).toFixed(2)));
+    const stockPrices = getMetricArray('emartStock');
+    
+    // Overview Chart
+    if (charts.overview) {
+      charts.overview.updateSeries([
+        { name: '카드결제액 평균 (억원)', data: salesAvg },
+        { name: '이마트 주가 (원)', data: stockPrices }
+      ]);
+    }
+    
+    // Stock Chart
+    if (charts.stock) {
+      charts.stock.updateSeries([
+        { name: '이마트 주가 (원)', data: stockPrices },
+        { name: '거래량 (주)', data: getMetricArray('emartVolume') }
+      ]);
+    }
+    
+    // Coupon Chart
+    if (charts.coupon) {
+      charts.coupon.updateSeries([
+        { name: '중고거래 할인율 (%)', data: getMetricArray('giftDiscount') }
+      ]);
+    }
+    
+    // Social Search Chart
+    if (charts.search) {
+      charts.search.updateSeries([
+        { name: '검색량 상대 지수', data: getMetricArray('searchTrend') }
+      ]);
+    }
+    
+    // Social Sentiment Chart
+    if (charts.sentiment) {
+      charts.sentiment.updateSeries([
+        { name: '긍정 여론 (%)', data: getMetricArray('sentimentPositive') },
+        { name: '부정 여론 (%)', data: getMetricArray('sentimentNegative') }
+      ]);
+    }
+    
+    // Remove spinning class to end loading animation
+    btn.classList.remove('spinning');
+  }, 800);
+}

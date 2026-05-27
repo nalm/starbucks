@@ -30,11 +30,16 @@
           <p>브랜드 리스크 모니터링 및 실시간 복원력 다차원 분석 대시보드</p>
         </div>
       </div>
-      <div class="date-badge" id="live-indicator">
-        <span class="live-dot"></span>
-        <span>LIVE MONITORING</span>
-        <span style="color: var(--border-hover);">|</span>
-        <span id="current-time-text">2026-05-27 16:50</span>
+      <div class="header-controls" style="display: flex; gap: 0.75rem; align-items: center;">
+        <div class="date-badge" id="live-indicator">
+          <span class="live-dot"></span>
+          <span>LIVE MONITORING</span>
+          <span style="color: var(--border-hover);">|</span>
+          <span id="current-time-text">2026-05-27 16:50</span>
+        </div>
+        <button class="refresh-btn" id="refresh-button" onclick="refreshData()" title="실시간 데이터 새로고침">
+          <span class="refresh-icon">🔄</span>
+        </button>
       </div>
     </header>
 
