@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>스타벅스 탱크데이 사태 모니터링 및 브랜드 영향 분석 대시보드</title>
+  <meta name="description" content="2026년 5월 18일 스타벅스 코리아의 탱크 텀블러 이벤트 논란으로 촉발된 불매운동의 매출, 주가, 다운로드 수, 소셜 여론 등의 실시간 지표 변화를 추적하는 모니터링 시스템입니다.">
+  
+  <!-- SEO Open Graph -->
+  <meta property="og:title" content="스타벅스 탱크데이 브랜드 임팩트 대시보드">
+  <meta property="og:description" content="매출, 주가, 앱 WAU, 소셜 버즈 등의 지표를 통한 다각적 브랜드 위기 극복율 모니터링">
+  <meta property="og:type" content="website">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- ApexCharts.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Header Section -->
+    <header>
+      <div class="brand-wrapper">
+        <div class="brand-logo">☕</div>
+        <div class="brand-title">
+          <h1>STARBUCKS TANKDAY IMPACT TRACKER</h1>
+          <p>브랜드 리스크 모니터링 및 실시간 복원력 다차원 분석 대시보드</p>
+        </div>
+      </div>
+      <div class="date-badge" id="live-indicator">
+        <span class="live-dot"></span>
+        <span>LIVE MONITORING</span>
+        <span style="color: var(--border-hover);">|</span>
+        <span id="current-time-text">2026-05-27 16:50</span>
+      </div>
+    </header>
+
+    <!-- Top KPI Grid -->
+    <section class="kpi-grid">
+      
+      <!-- KPI Card 1: Sales Impact -->
+      <div class="kpi-card negative" id="kpi-sales">
+        <div class="kpi-header">
+          <span>주간 카드결제 추정액</span>
+          <span class="kpi-icon">💳</span>
+        </div>
+        <div class="kpi-value" id="kpi-sales-value">236.9억</div>
+        <div class="kpi-change down" id="kpi-sales-change">
+          <span>▼ 26.3%</span>
+          <span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: normal;">(전주 대비)</span>
+        </div>
+      </div>
+
+      <!-- KPI Card 2: Emart Stock -->
+      <div class="kpi-card negative" id="kpi-stock">
+        <div class="kpi-header">
+          <span>모회사 이마트 주가</span>
+          <span class="kpi-icon">📈</span>
+        </div>
+        <div class="kpi-value" id="kpi-stock-value">89,900원</div>
+        <div class="kpi-change down" id="kpi-stock-change">
+          <span>▼ 9.38%</span>
+          <span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: normal;">(사태 전 대비)</span>
+        </div>
+      </div>
+
+      <!-- KPI Card 3: App WAU -->
+      <div class="kpi-card neutral" id="kpi-app">
+        <div class="kpi-header">
+          <span>주간 앱 사용자 (WAU)</span>
+          <span class="kpi-icon">📱</span>
+        </div>
+        <div class="kpi-value" id="kpi-app-value">384.5만</div>
+        <div class="kpi-change down" id="kpi-app-change">
+          <span>▼ 1.49%</span>
+          <span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: normal;">(사태 전 대비)</span>
+        </div>
+      </div>
+
+      <!-- KPI Card 4: Brand Sentiment -->
+      <div class="kpi-card negative" id="kpi-sentiment">
+        <div class="kpi-header">
+          <span>부정 여론 지수</span>
+          <span class="kpi-icon">💬</span>
+        </div>
+        <div class="kpi-value" id="kpi-sentiment-value">71.0%</div>
+        <div class="kpi-change down" id="kpi-sentiment-change">
+          <span>▲ 59.0%</span>
+          <span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: normal;">(부정 상승)</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Interactive Event Timeline -->
+    <section class="timeline-section">
+      <div class="section-header">
+        <h2 class="section-title">🕒 5·18 탱크데이 사태 타임라인 및 마일스톤</h2>
+        <span style="font-size: 0.8rem; color: var(--color-text-muted);">마일스톤 노드를 클릭하면 해당 일자의 지표 분석이 아래 차트 및 패널에 반영됩니다.</span>
+      </div>
+      
+      <div class="timeline-tracker" id="timeline-container">
+        <!-- JS로 동적 생성됨 -->
+      </div>
+
+      <!-- Dynamic Event Callout -->
+      <div class="event-callout" id="active-event-panel" style="display: none;">
+        <div class="event-callout-icon" id="event-icon">🚨</div>
+        <div class="event-callout-content">
+          <h4 id="event-title">이벤트 타이틀</h4>
+          <p id="event-desc">이벤트 상세 정보 요약</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tab Navigation -->
+    <nav class="tabs-navigation">
+      <button class="tab-btn active" onclick="switchTab('overview')">📊 종합 대시보드 (Overview)</button>
+      <button class="tab-btn" onclick="switchTab('finance')">📉 주가 & 금융 시장 영향 (Finance)</button>
+      <button class="tab-btn" onclick="switchTab('app')">📱 앱 다운로드 & WAU 추이 (Digital App)</button>
+      <button class="tab-btn" onclick="switchTab('social')">💬 소셜 반응 & 검색 트렌드 (Social)</button>
+    </nav>
+
+    <!-- ==================== TAB CONTENT: OVERVIEW ==================== -->
+    <div class="tab-content active" id="tab-overview">
+      <div class="overview-grid">
+        
+        <!-- Main Line Chart -->
+        <div class="main-chart-card">
+          <div class="section-header" style="margin-bottom: 1rem;">
+            <h3 class="section-title" style="font-size: 1.1rem;">📈 매출 추정치 및 이마트 주가 상관관계</h3>
+            <span class="badge-danger">사태 발발일: 5/18</span>
+          </div>
+          <div id="chart-overview" style="min-height: 350px;">
+            <!-- ApexCharts 로드 예정 -->
+          </div>
+          <div style="font-size: 0.75rem; color: var(--color-text-muted); margin-top: 1rem; text-align: right;">
+            * 결제금액은 모바일인덱스 및 Aicel 카드 결제 추정 지표의 평균 신뢰구간을 반영함.
+          </div>
+        </div>
+
+        <!-- Right Side Stats Panel -->
+        <div class="side-panel">
+          
+          <!-- Recovery Calculator Box -->
+          <div class="glass-box">
+            <h3 class="box-title">⏱️ 브랜드 지표 회복율 <span>D+9 경과</span></h3>
+            <div class="recovery-meter">
+              <div class="meter-circle warning" id="recovery-circle">
+                <span class="meter-percentage" id="recovery-rate">72.8%</span>
+                <span class="meter-label">정상 수준 대비</span>
+              </div>
+              <div class="recovery-status-text" id="recovery-status" style="color: var(--color-warning);">
+                주의 상태 (완만한 U자 회복 추이)
+              </div>
+            </div>
+            <div class="recovery-stats">
+              <div class="rec-stat-item">
+                <div class="rec-stat-val" id="rec-sales">70.7%</div>
+                <div class="rec-stat-lbl">매출 회복</div>
+              </div>
+              <div class="rec-stat-item">
+                <div class="rec-stat-val" id="rec-stock">90.6%</div>
+                <div class="rec-stat-lbl">주가 회복</div>
+              </div>
+              <div class="rec-stat-item">
+                <div class="rec-stat-val" id="rec-sentiment">32.6%</div>
+                <div class="rec-stat-lbl">여론 회복</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Competitor Impact Box -->
+          <div class="glass-box">
+            <h3 class="box-title">☕ 경쟁 브랜드 수요 이동 <span>5/18~5/24 주간</span></h3>
+            <div class="competitor-list" id="competitor-list-container">
+              <!-- JS로 동적 렌더링 -->
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB CONTENT: FINANCE ==================== -->
+    <div class="tab-content" id="tab-finance">
+      <div class="detail-grid-2x2">
+        
+        <!-- Stock Candlestick Chart -->
+        <div class="chart-card">
+          <div class="chart-card-title">
+            <span>📉 이마트(008770) 주가 & 거래량 변화</span>
+            <span class="badge-info">KOSPI 상장</span>
+          </div>
+          <div id="chart-finance-stock" style="min-height: 300px;"></div>
+          <div class="insights-box">
+            <h4 class="insights-title">💡 주가 변동 리스크 인사이트</h4>
+            <ul class="insights-list">
+              <li>사태 직후 5/19~20일 이틀간 종가 기준 <strong>10.8% 하락</strong>하며 시가총액 급락.</li>
+              <li>경찰의 정용진 회장 수사 착수 및 불매 운동 확산 보도로 투자 심리 위축.</li>
+              <li>5/22 손정현 대표 해임 카드로 지배구조 리스크 차단 유도, 이후 하방 경직성 확보 및 소폭 회복 시도 중.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Coupon Discount Rate Chart -->
+        <div class="chart-card">
+          <div class="chart-card-title">
+            <span>🎁 스타벅스 5만원권 중고 할인율 추이</span>
+            <span class="badge-danger">시장 신뢰 지표</span>
+          </div>
+          <div id="chart-finance-coupon" style="min-height: 300px;"></div>
+          <div class="insights-box">
+            <h4 class="insights-title">💡 중고 시장 리스크 인사이트</h4>
+            <ul class="insights-list">
+              <li>사태 이전 안정적인 <strong>5% 수준</strong>이던 중고 할인율이 사태 후 <strong>최대 12%</strong>까지 상승(투매 현상).</li>
+              <li>선불 충전금 환불 요구 및 기프티콘 사용 기피 심리가 중고 매물 급증으로 연결.</li>
+              <li>5/27 현재 9.8% 수준으로 소폭 하락하였으나, 여전히 평시 대비 2배 수준의 할인 폭 유지 중.</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ==================== TAB CONTENT: DIGITAL APP ==================== -->
+    <div class="tab-content" id="tab-app">
+      <div class="detail-grid-2x2">
+        
+        <!-- App Active Users (WAU) -->
+        <div class="chart-card">
+          <div class="chart-card-title">
+            <span>📱 주간 활성 사용자 수 (WAU)의 역설</span>
+            <span class="badge-info">이탈 vs 트래픽 일시증가</span>
+          </div>
+          <div id="chart-app-wau" style="min-height: 300px;"></div>
+          <div class="insights-box">
+            <h4 class="insights-title">💡 WAU 역설적 상승 분석</h4>
+            <ul class="insights-list">
+              <li>사태 발생 주간(18~24일)에 WAU는 오히려 <strong>4.7% 증가</strong>(408.5만 명).</li>
+              <li>이는 신규 소비 활동이 아닌 <strong>사과문 확인, 모바일 충전금 환불 및 회원 탈퇴</strong> 트래픽으로 분석됨.</li>
+              <li>5/25 이후 환불 행렬이 정리되면서 실질적 WAU는 384.5만 명 수준으로 평시 아래로 꺾이는 이탈 징후 확인.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- App Downloads and installs -->
+        <div class="chart-card">
+          <div class="chart-card-title">
+            <span>📥 신규 앱 설치 건수 추이</span>
+            <span class="badge-danger">신규 유입 둔화</span>
+          </div>
+          <div id="chart-app-downloads" style="min-height: 300px;"></div>
+          <div class="insights-box">
+            <h4 class="insights-title">💡 다운로드 추이 리스크 인사이트</h4>
+            <ul class="insights-list">
+              <li>평시 일 7,000건 안팎을 유지하던 신규 설치 수가 사건 이후 일 <strong>3,120건(55% 하락)</strong>까지 폭락.</li>
+              <li>식음료(F&B) 카테고리 앱 내 순위가 기존 2위에서 5위로 하락.</li>
+              <li>신규 고객 확보 동력이 마비 상태에 이르러 중장기적 LTV(고객생애가치) 하락 우려.</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ==================== TAB CONTENT: SOCIAL & SEARCH ==================== -->
+    <div class="tab-content" id="tab-social">
+      <div class="detail-grid-2x2">
+        
+        <!-- Search Trend Chart -->
+        <div class="chart-card">
+          <div class="chart-card-title">
+            <span>🔍 네이버 검색량 트렌드 및 관심도</span>
+            <span class="badge-info">키워드 상대 지수</span>
+          </div>
+          <div id="chart-social-search" style="min-height: 300px;"></div>
+          <div class="insights-box">
+            <h4 class="insights-title">💡 대중 관심도 인사이트</h4>
+            <ul class="insights-list">
+              <li>5/18일 논란 발발과 함께 검색량 폭증, <strong>5/19일 최대 피크(100)</strong>를 달성.</li>
+              <li>'스타벅스 불매', '탱크데이', '스타벅스 정용진' 키워드의 검색량이 95% 이상을 차지.</li>
+              <li>현재 35.1 수준으로 완만히 감소했으나 평시 대비 7배 가량 높은 대중적 관심 수준 유지.</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Sentiment & Buzz Chart -->
+        <div class="chart-card">
+          <div class="chart-card-title">
+            <span>💬 SNS 버즈량 및 긍·부정 감성 추이</span>
+            <span class="badge-danger">여론 감성 분석</span>
+          </div>
+          <div id="chart-social-sentiment" style="min-height: 300px;"></div>
+          <div class="insights-box">
+            <h4 class="insights-title">💡 여론 및 소셜 버즈 인사이트</h4>
+            <ul class="insights-list">
+              <li>사태 직후 부정 언급률이 <strong>90%</strong>에 다다르며 극도의 부정 여론 형성.</li>
+              <li>정용진 회장의 사과와 대표 해임 발표에도 불구하고 부정 비율은 80%대 장기 유지.</li>
+              <li>5/25 B2B 탈퇴(기관/부처 상품권 교체) 공론화로 부정 반응 소폭 반등. 대책 발표 후 5/27 71% 선으로 다소 개선.</li>
+            </ul>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Load Scripts -->
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
