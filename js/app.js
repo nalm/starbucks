@@ -1,6 +1,84 @@
 // Global Chart Instances
 let charts = {};
 
+// 5/28부터 현재 날짜까지의 점진적 브랜드 지표 회복 데이터를 동적으로 생성하는 함수
+function fillDataToToday() {
+  const metrics = DASHBOARD_DATA.dailyMetrics;
+  const lastData = metrics[metrics.length - 1];
+  const lastDate = new Date(lastData.date);
+  const today = new Date();
+  
+  // 시분초 제외한 순수 날짜 비교
+  const lastDateCompare = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
+  const todayCompare = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  
+  // 날짜 차이 계산 (일 단위)
+  const diffTime = todayCompare - lastDateCompare;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  if (diffDays <= 0) return;
+  
+  let currentDate = new Date(lastDateCompare);
+  
+  // 5/27 저점 기준치들
+  let emartStock = lastData.emartStock;
+  let salesMobil = lastData.salesMobil;
+  let salesAicel = lastData.salesAicel;
+  let appDownloads = lastData.appDownloads;
+  let appWau = lastData.appWau;
+  let searchTrend = lastData.searchTrend;
+  let mentions = lastData.mentions;
+  let sentimentPositive = lastData.sentimentPositive;
+  let giftDiscount = lastData.giftDiscount;
+
+  for (let i = 1; i <= diffDays; i++) {
+    currentDate.setDate(currentDate.getDate() + 1);
+    const dateStr = currentDate.toISOString().split('T')[0];
+    
+    // 점진적으로 정상 수치로 회복하는 factor (0.0 ~ 1.0)
+    // 21일(3주일)에 걸쳐 완전 회복 상태로 수렴하게 유도
+    const factor = Math.min(1.0, i / 21);
+    
+    // 목표 정상 기준치
+    const targetStock = 97000; // 원
+    const targetMobil = 51.5; // 억원
+    const targetAicel = 52.5; // 억원
+    const targetDownloads = 7000; // 건
+    const targetWau = 391.0; // 만명
+    const targetSearch = 5.0; // 상대지수
+    const targetMentions = 1400; // 건
+    const targetPos = 88.0; // %
+    const targetDiscount = 5.1; // %
+
+    // 보간값에 약간의 일별 노이즈 추가
+    const dayStock = Math.round(emartStock + (targetStock - emartStock) * factor + (Math.random() * 1200 - 600));
+    const dayMobil = parseFloat((salesMobil + (targetMobil - salesMobil) * factor + (Math.random() * 0.8 - 0.4)).toFixed(2));
+    const dayAicel = parseFloat((salesAicel + (targetAicel - salesAicel) * factor + (Math.random() * 0.8 - 0.4)).toFixed(2));
+    const dayDownloads = Math.round(appDownloads + (targetDownloads - appDownloads) * factor + (Math.random() * 600 - 300));
+    const dayWau = parseFloat((appWau + (targetWau - appWau) * factor + (Math.random() * 2.0 - 1.0)).toFixed(2));
+    const daySearch = parseFloat((searchTrend + (targetSearch - searchTrend) * factor + (Math.random() * 1.6 - 0.8)).toFixed(1));
+    const dayMentions = Math.round(mentions + (targetMentions - mentions) * factor + (Math.random() * 300 - 150));
+    const dayPos = Math.round(sentimentPositive + (targetPos - sentimentPositive) * factor + (Math.random() * 6 - 3));
+    const dayNeg = 100 - dayPos;
+    const dayDiscount = parseFloat((giftDiscount + (targetDiscount - giftDiscount) * factor + (Math.random() * 0.6 - 0.3)).toFixed(1));
+
+    metrics.push({
+      date: dateStr,
+      emartStock: dayStock,
+      emartVolume: currentDate.getDay() === 0 || currentDate.getDay() === 6 ? 0 : Math.round(120000 + Math.random() * 90000),
+      salesMobil: Math.max(25, dayMobil),
+      salesAicel: Math.max(25, dayAicel),
+      appDownloads: Math.max(1000, dayDownloads),
+      appWau: Math.max(300, dayWau),
+      searchTrend: Math.max(0, daySearch),
+      mentions: Math.max(0, dayMentions),
+      sentimentPositive: Math.min(100, Math.max(0, dayPos)),
+      sentimentNegative: Math.min(100, Math.max(0, dayNeg)),
+      giftDiscount: Math.max(0, dayDiscount)
+    });
+  }
+}
+
 // Current Live Time & Date initialization
 function updateLiveTime() {
   const now = new Date();
@@ -63,8 +141,11 @@ function renderTimeline() {
   
   container.innerHTML = '';
   
+  const lastIndex = DASHBOARD_DATA.dailyMetrics.length - 1;
+  const lastDateStr = DASHBOARD_DATA.dailyMetrics[lastIndex].date;
+  
   // We want to map daily metrics and attach milestones on top
-  DASHBOARD_DATA.dailyMetrics.forEach(day => {
+  DASHBOARD_DATA.dailyMetrics.forEach((day, index) => {
     const milestone = DASHBOARD_DATA.milestones.find(m => m.date === day.date);
     
     const node = document.createElement('div');
@@ -75,11 +156,22 @@ function renderTimeline() {
     
     const isMilestone = !!milestone;
     const dotEmoji = isMilestone ? milestone.icon : '•';
+    const isLast = day.date === lastDateStr;
+    
+    let nodeLabel = '';
+    if (isMilestone) {
+      nodeLabel = milestone.title;
+    } else if (isLast) {
+      const start = new Date('2026-05-18');
+      const current = new Date(day.date);
+      const diff = Math.ceil((current - start) / (1000 * 60 * 60 * 24));
+      nodeLabel = `오늘 (D+${diff})`;
+    }
     
     node.innerHTML = `
       <div class="node-dot">${dotEmoji}</div>
       <div class="node-date">${day.date.substring(5)}</div>
-      <div class="node-label">${isMilestone ? milestone.title : day.date === '2026-05-27' ? '오늘 (D+9)' : ''}</div>
+      <div class="node-label">${nodeLabel}</div>
     `;
     
     node.addEventListener('click', () => {
@@ -121,6 +213,15 @@ function renderTimeline() {
 function calculateRecovery() {
   const baseline = DASHBOARD_DATA.dailyMetrics.slice(0, 7); // First week (Pre-crisis)
   const current = DASHBOARD_DATA.dailyMetrics[DASHBOARD_DATA.dailyMetrics.length - 1]; // Latest day
+  
+  // D-Day 계산 및 업데이트
+  const start = new Date('2026-05-18');
+  const currDate = new Date(current.date);
+  const diffDays = Math.ceil((currDate - start) / (1000 * 60 * 60 * 24));
+  const daysEl = document.getElementById('recovery-days');
+  if (daysEl) {
+    daysEl.innerText = `D+${diffDays} 경과`;
+  }
   
   // 1. Sales Recovery Rate (Average of both cards)
   const baseSalesMobil = baseline.reduce((sum, d) => sum + d.salesMobil, 0) / baseline.length;
@@ -170,6 +271,88 @@ function calculateRecovery() {
     circleEl.style.borderRightColor = 'var(--color-sb-green)';
     circleEl.style.borderBottomColor = 'var(--color-sb-green)';
     circleEl.style.borderLeftColor = 'var(--color-sb-green)';
+  }
+}
+
+// Update Top KPI Cards dynamically based on the latest metrics
+function updateKpiCards() {
+  const metrics = DASHBOARD_DATA.dailyMetrics;
+  const current = metrics[metrics.length - 1];
+  
+  // 7일 전 데이터
+  const prevWeekIdx = Math.max(0, metrics.length - 8);
+  const prevWeek = metrics[prevWeekIdx];
+  
+  // 1. 카드결제액 (주간 평균 합계로 표현)
+  const currSalesAvg = (current.salesMobil + current.salesAicel) / 2;
+  const prevSalesAvg = (prevWeek.salesMobil + prevWeek.salesAicel) / 2;
+  const salesChangePercent = ((currSalesAvg - prevSalesAvg) / prevSalesAvg) * 100;
+  
+  const salesValEl = document.getElementById('kpi-sales-value');
+  const salesChangeEl = document.getElementById('kpi-sales-change');
+  if (salesValEl && salesChangeEl) {
+    salesValEl.innerText = `${(currSalesAvg * 7).toFixed(1)}억`;
+    if (salesChangePercent >= 0) {
+      salesChangeEl.className = 'kpi-change up';
+      salesChangeEl.innerHTML = `<span>▲ ${salesChangePercent.toFixed(1)}%</span><span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: normal;">(전주 대비)</span>`;
+    } else {
+      salesChangeEl.className = 'kpi-change down';
+      salesChangeEl.innerHTML = `<span>▼ ${Math.abs(salesChangePercent).toFixed(1)}%</span><span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: normal;">(전주 대비)</span>`;
+    }
+  }
+
+  // 2. 이마트 주가
+  const stockValEl = document.getElementById('kpi-stock-value');
+  const stockChangeEl = document.getElementById('kpi-stock-change');
+  if (stockValEl && stockChangeEl) {
+    stockValEl.innerText = `${current.emartStock.toLocaleString()}원`;
+    
+    // 사태 직전(5/17) 대비 변동
+    const baseStock = 98900;
+    const stockChangePercent = ((current.emartStock - baseStock) / baseStock) * 100;
+    if (stockChangePercent >= 0) {
+      stockChangeEl.className = 'kpi-change up';
+      stockChangeEl.innerHTML = `<span>▲ ${stockChangePercent.toFixed(2)}%</span><span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: normal;">(사태 전 대비)</span>`;
+    } else {
+      stockChangeEl.className = 'kpi-change down';
+      stockChangeEl.innerHTML = `<span>▼ ${Math.abs(stockChangePercent).toFixed(2)}%</span><span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: normal;">(사태 전 대비)</span>`;
+    }
+  }
+
+  // 3. 앱 WAU
+  const appValEl = document.getElementById('kpi-app-value');
+  const appChangeEl = document.getElementById('kpi-app-change');
+  if (appValEl && appChangeEl) {
+    appValEl.innerText = `${current.appWau.toFixed(1)}만`;
+    
+    // 사태 직전(5/17) WAU 대비 변동
+    const baseWau = 390.3;
+    const wauChangePercent = ((current.appWau - baseWau) / baseWau) * 100;
+    if (wauChangePercent >= 0) {
+      appChangeEl.className = 'kpi-change up';
+      appChangeEl.innerHTML = `<span>▲ ${wauChangePercent.toFixed(2)}%</span><span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: normal;">(사태 전 대비)</span>`;
+    } else {
+      appChangeEl.className = 'kpi-change down';
+      appChangeEl.innerHTML = `<span>▼ ${Math.abs(wauChangePercent).toFixed(2)}%</span><span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: normal;">(사태 전 대비)</span>`;
+    }
+  }
+
+  // 4. 부정 여론 지수
+  const sentimentValEl = document.getElementById('kpi-sentiment-value');
+  const sentimentChangeEl = document.getElementById('kpi-sentiment-change');
+  if (sentimentValEl && sentimentChangeEl) {
+    sentimentValEl.innerText = `${current.sentimentNegative.toFixed(1)}%`;
+    
+    // 사태 직전(5/17) 대비 증가량
+    const baseNeg = 13;
+    const negDiff = current.sentimentNegative - baseNeg;
+    if (negDiff >= 0) {
+      sentimentChangeEl.className = 'kpi-change down';
+      sentimentChangeEl.innerHTML = `<span>▲ ${negDiff.toFixed(1)}%</span><span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: normal;">(부정 상승)</span>`;
+    } else {
+      sentimentChangeEl.className = 'kpi-change up';
+      sentimentChangeEl.innerHTML = `<span>▼ ${Math.abs(negDiff).toFixed(1)}%</span><span style="font-size: 0.75rem; color: var(--color-text-muted); font-weight: normal;">(부정 감소)</span>`;
+    }
   }
 }
 
@@ -507,10 +690,12 @@ function initCharts() {
 
 // App Initialization
 document.addEventListener('DOMContentLoaded', () => {
+  fillDataToToday();
   updateLiveTime();
   setInterval(updateLiveTime, 1000); // Update every second
   
   renderTimeline();
+  updateKpiCards();
   calculateRecovery();
   renderCompetitors();
   
@@ -538,7 +723,7 @@ function refreshData() {
   const format = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
   document.getElementById('current-time-text').innerText = format;
   
-  // 3. Inject simulated real-time noise into the latest day's data (2026-05-27)
+  // 3. Inject simulated real-time noise into the latest day's data (Today)
   const latestIdx = DASHBOARD_DATA.dailyMetrics.length - 1;
   const latestData = DASHBOARD_DATA.dailyMetrics[latestIdx];
   
@@ -552,24 +737,19 @@ function refreshData() {
   latestData.salesMobil = parseFloat(Math.max(25, latestData.salesMobil + salesMobilNoise).toFixed(2));
   latestData.salesAicel = parseFloat(Math.max(25, latestData.salesAicel + salesAicelNoise).toFixed(2));
   
-  // Sentiment: positive ratio moves within 26% to 32%
-  const sentimentPos = Math.max(26, Math.min(32, latestData.sentimentPositive + (Math.random() > 0.5 ? 1 : -1)));
+  // Sentiment: positive ratio moves within 75% to 95% (recovered state)
+  const sentimentPos = Math.max(75, Math.min(95, latestData.sentimentPositive + (Math.random() > 0.5 ? 1 : -1)));
   latestData.sentimentPositive = sentimentPos;
   latestData.sentimentNegative = 100 - sentimentPos;
   
-  // Search Trend: random change of -1.5 to +1.5
-  latestData.searchTrend = parseFloat(Math.max(20, Math.min(60, latestData.searchTrend + (Math.random() * 3 - 1.5))).toFixed(1));
+  // Search Trend: random change of -0.6 to +0.6
+  latestData.searchTrend = parseFloat(Math.max(1, Math.min(15, latestData.searchTrend + (Math.random() * 1.2 - 0.6))).toFixed(1));
   
   // Gift Card Discount: random change of -0.2% to +0.2%
-  latestData.giftDiscount = parseFloat(Math.max(7, Math.min(15, latestData.giftDiscount + (Math.random() * 0.4 - 0.2))).toFixed(1));
+  latestData.giftDiscount = parseFloat(Math.max(4, Math.min(8, latestData.giftDiscount + (Math.random() * 0.4 - 0.2))).toFixed(1));
 
   // 4. Update Top KPI Cards
-  const avgSales = ((latestData.salesMobil + latestData.salesAicel) / 2).toFixed(1);
-  document.getElementById('kpi-sales-value').innerText = `${avgSales}억`;
-  document.getElementById('kpi-stock-value').innerText = `${latestData.emartStock.toLocaleString()}원`;
-  
-  // Sentiment Card: update sentiment values
-  document.getElementById('kpi-sentiment-value').innerText = `${latestData.sentimentNegative.toFixed(1)}%`;
+  updateKpiCards();
   
   // Calculate recovery rate and refresh components
   calculateRecovery();
